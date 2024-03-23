@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Forecaster App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Weather Forecaster App</h1>
+        <div class="search-container">
+            <input type="text" id="locationInput" placeholder="Enter Location" class="input-field">
+            <button onclick="getWeather()" class="button">Get Weather</button>
+        </div>
+        <div class="weather-container">
+            <div id="weatherInfo" class="weather-info"></div>
+            <div id="forecastInfo" class="forecast-info"></div>
+            <div id="indicesInfo" class="indices-info"></div>
+        </div>
+    </div>
+
+    <script>
+        const apiKey = 'HnETJOwPJwqGVvbFpbCilb5gvv5KkPFq';
+
+async function getLocationKey(location) {
+    try {
+        const response = await fetch(`https://dataservice.accuweather.com/locations/v1/cities/search?apikey=${apiKey}&q=${location}`);
+        const data = await response.json();
+        return data[0].Key;
+    } catch (error) {
+        console.error('Error fetching location data:', error);
+        throw error;
+    }
+}
+
+async function getCurrentConditions(locationKey) {
+    try {
+        const response = await fetch(`https://dataservice.accuweather.com/currentconditions/v1/${locationKey}?apikey=${apiKey}&details=true`);
+        const data = await response.json();
+        return data[0];
+    } catch (error) {
+        console.error('Error fetching current conditions data:', error);
+        throw error;
+    }
+}
+
+async function getForecast(locationKey) {
+    try {
+        const response = await fetch(`https://dataservice.accuweather.com/forecasts/v1/daily/5day/${locationKey}?apikey=${apiKey}&details=true`);
+        const data = await response.json();
+        return data.DailyForecasts;
+    } catch (error) {
+        console.error('Error fetching forecast data:', error);
+        throw error;
+    }
+}
+
+async function getIndices(locationKey) {
+    try {
+        const response = await fetch(`https://dataservice.accuweather.com/indices/v1/daily/1day/${locationKey}/2?apikey=${apiKey}`);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Error fetching indices data:', error);
+        throw error;
+    }
+}
+
+async function getWeather() {
+    const location = document.getElementById("locationInput").value;
+
+    try {
+        const locationKey = await getLocationKey(location);
+        const currentConditions = await getCurrentConditions(locationKey);
+        const forecast = await getForecast(locationKey);
+        const indices = await getIndices(locationKey);
+
+        displayCurrentConditions(currentConditions);
+        displayForecast(forecast);
+        displayIndices(indices);
+    } catch (error) {
+        displayError(error);
+    }
+}
+
+function displayCurrentConditions(currentConditions) {
+    const temperature = currentConditions.Temperature.Imperial.Value;
+    const weatherText = currentConditions.WeatherText;
+    document.getElementById("weatherInfo").innerHTML = `<h2>Current Conditions</h2><p>Temperature: ${temperature} F</p><p>Weather: ${weatherText}</p>`;
+}
+
+function displayForecast(forecast) {
+    let forecastInfo = '<h2>5-Day Forecast</h2>';
+    forecast.forEach(forecastDay => {
+        const date = new Date(forecastDay.Date);
+        const maxTemperature = forecastDay.Temperature.Maximum.Value;
+        const minTemperature = forecastDay.Temperature.Minimum.Value;
+        forecastInfo += `<p>Date: ${date.toLocaleDateString()} - Max Temp: ${maxTemperature} F - Min Temp: ${minTemperature} F</p>`;
+    });
+    document.getElementById("forecastInfo").innerHTML = forecastInfo;
+}
+
+function displayIndices(indices) {
+    let indicesInfo = '<h2>Daily Indices</h2>';
+    indices.forEach(index => {
+        indicesInfo += `<p>${index.Name}: ${index.Category}</p>`;
+    });
+    document.getElementById("indicesInfo").innerHTML = indicesInfo;
+}
+
+function displayError(error) {
+    document.getElementById("weatherInfo").innerHTML = 'An error occurred while fetching data. Please try again later.';
+    document.getElementById("forecastInfo").innerHTML = '';
+    document.getElementById("indicesInfo").innerHTML = '';
+}
+    </script>
+</body>
+</html>
